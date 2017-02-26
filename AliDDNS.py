@@ -11,7 +11,7 @@ RecordId = '12345678'
 HTTPMethod = 'GET'
 Host = 'alidns.aliyuncs.com'
 Timestamp = datetime.datetime.strftime(datetime.datetime.utcnow(), ISFORMAT)
-Hkey = 'YIvZPbkJ4YHnZNuqEmJSspjWQFP5lR' + '&'
+Hkey = 'XXXXXXXXXXXXXXXXXXXXXXX' + '&'
 ordered = OrderedDict()
 parameters = {"AccessKeyId": AccessKeyId, 'Action': 'UpdateDomainRecord', 'RR': 'home', 'Type': 'A',
               'Value': IP, 'Format': 'JSON', 'Version': '2015-01-09', 'SignatureMethod': 'HMAC-SHA1',

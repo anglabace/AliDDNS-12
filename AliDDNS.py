@@ -17,12 +17,12 @@ def useage():
           "     -R,--recordid   : 主机记录ID, 通过查询获取, 更新DNS记录时必须;\n" \
           "     -i,--ip         : 需要解析到的IP地址,更新DNS记录时必须;;\n" \
           "     -h,--help       : 显示此帮助;\n" \
-          "说明:" \
+          "说明:\n" \
           "     首先取得你的域名对应的RecordID\n" \
           "     #aliddns.py -A DescribeDomainRecord -a 你的KEYID -k 你的KEY -n 你的域名\n" \
           "     再使用相应的RecordID和IP地址更新域名解析\n" \
           "     #aliddns.py -A UpdateDomainRecord -a 你的KEYID -k 你的KEY -r 你的主机记录 -R 对应的RecordID -i 需要解析的IP\n" \
-          "     或者获取到RecordID后, 直接将脚本设置为连线后自动运行."
+          "     或者获取到RecordID后, 直接将脚本设置为WAN网口UP,或者PPPoE成功后自动运行."
 
 
 def access_api(pars, key):
@@ -34,16 +34,14 @@ def access_api(pars, key):
     keys.sort()
     for k in keys:
         ordered[k] = pars[k]
-    print ordered
     querystring = urllib.urlencode(ordered)
     stringtosign = httpmethod + '&%2F&' + urllib.quote(querystring)
     # 使用key将参数字符串HMAC-SHA1加密并使用base64编码
     signature = base64.b64encode(hmac.new(key, stringtosign, hashlib.sha1).digest())
     ordered['Signature'] = signature
     url = protocal + host + '/?' + urllib.urlencode(ordered)
-    print url
     response = urllib.urlopen(url)
-    print response.read()
+    return response.read(), response.getcode()
 
 
 def main():
@@ -74,7 +72,7 @@ def main():
                 pars['Value'] = v
             if o in ['-h', '--help']:
                 useage()
-                exit()
+                exit(2)
         timestamp = datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
         pars.update({'Format': 'JSON', 'Version': '2015-01-09', 'SignatureMethod': 'HMAC-SHA1', 'Timestamp': timestamp,
                      'SignatureVersion': '1.0', 'SignatureNonce': uuid.uuid4()})
@@ -84,18 +82,23 @@ def main():
             if 'Action' in pars.keys() and pars['Action'] in ['UpdateDomainRecord', 'DescribeDomainRecords']:
                 if pars['Action'] == 'DescribeDomainRecords':
                     if 'DomainName' in pars.keys():
-                        access_api(pars, accesskey)
+                        answer = access_api(pars, accesskey)
+                        if answer[1] == 200:
+                            for record in json.loads(answer[0])['DomainRecords']['Record']:
+                                print record['RR'] + '.' + record['DomainName'], record['RecordId']
+                        else:
+                            print 'ERROR: '+json.loads(answer[0])['Code']+', '+json.loads(answer[0])['Message']
                     else:
-                        print '错误: 需要DomainName字段.'
+                        print '错误: 需要DomainName参数.'
                 else:
                     if 'RR' in pars.keys() and 'RecordId' in pars.keys() and 'Value' in pars.keys():
                         access_api(pars, accesskey)
                     else:
-                        print '错误, 需要RR/RecordId/Value字段.'
+                        print '错误, 需要RR/RecordId/Value参数.'
             else:
-                print '错误, 需要Actions字段.'
+                print '错误, 需要Actions参数.'
         else:
-            print '错误, 需要AccessKey&ID字段.'
+            print '错误, 需要AccessKey&ID参数.'
 
 
 if __name__ == '__main__':

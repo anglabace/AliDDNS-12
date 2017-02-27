@@ -73,21 +73,25 @@ def main():
             if o in ['-h', '--help']:
                 useage()
                 exit(2)
+
+        # API URL参数补全
         timestamp = datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
         pars.update({'Format': 'JSON', 'Version': '2015-01-09', 'SignatureMethod': 'HMAC-SHA1', 'Timestamp': timestamp,
                      'SignatureVersion': '1.0', 'SignatureNonce': uuid.uuid4()})
+        # 参数检查
         if 'AccessKeyId' in pars.keys() and 'AccessKey' in pars.keys():
             # 签名使用AccessKey+‘&’作为密钥, AccessKey本身不属于待签名字字串
             accesskey = pars.pop('AccessKey') + '&'
             if 'Action' in pars.keys() and pars['Action'] in ['UpdateDomainRecord', 'DescribeDomainRecords']:
                 if pars['Action'] == 'DescribeDomainRecords':
                     if 'DomainName' in pars.keys():
+                        # 构造URL并访问, 取得响应打印回显
                         answer = access_api(pars, accesskey)
                         if answer[1] == 200:
                             for record in json.loads(answer[0])['DomainRecords']['Record']:
                                 print record['RR'] + '.' + record['DomainName'], record['RecordId']
                         else:
-                            print 'ERROR: '+json.loads(answer[0])['Code']+', '+json.loads(answer[0])['Message']
+                            print 'ERROR: ' + json.loads(answer[0])['Code'] + ', ' + json.loads(answer[0])['Message']
                     else:
                         print '错误: 需要DomainName参数.'
                 else:
